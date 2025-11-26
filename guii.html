@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LED Memory Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+        color: #e0e0e0;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .game-container {
+        background: rgba(25, 35, 45, 0.85);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        max-width: 600px;
+        padding: 25px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 25px;
+      }
+
+      h1 {
+        font-size: 2.4rem;
+        font-weight: 300;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+        background: linear-gradient(to right, #6dd5ed, #2193b0);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+
+      .subtitle {
+        font-size: 1rem;
+        color: #a0a0a0;
+        font-weight: 300;
+      }
+
+      .status-panel {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 25px;
+        background: rgba(15, 25, 35, 0.7);
+        border-radius: 12px;
+        padding: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+      }
+
+      .score-container,
+      .level-container {
+        text-align: center;
+      }
+
+      .score-label,
+      .level-label {
+        font-size: 0.9rem;
+        color: #8a8a8a;
+        margin-bottom: 5px;
+      }
+
+      .score-value,
+      .level-value {
+        font-size: 2rem;
+        font-weight: 300;
+        color: #6dd5ed;
+      }
+
+      .leds-container {
+        display: flex;
+        justify-content: space-between;
+        margin: 30px 0;
+      }
+
+      .led {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: #2a3a4a;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .led.active {
+        box-shadow: 0 0 20px rgba(109, 213, 237, 0.7);
+        background: #6dd5ed;
+      }
+
+      .led-number {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: rgba(255, 255, 255, 0.3);
+        font-weight: bold;
+        font-size: 1.2rem;
+      }
+
+      .controls {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 30px;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+      }
+
+      .btn-start {
+        background: linear-gradient(to right, #00b09b, #96c93d);
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 176, 155, 0.3);
+      }
+
+      .btn-restart {
+        background: linear-gradient(to right, #ff8a00, #e52e71);
+        color: white;
+        box-shadow: 0 4px 15px rgba(229, 46, 113, 0.3);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .btn:active {
+        transform: translateY(1px);
+      }
+
+      .game-status {
+        text-align: center;
+        margin: 20px 0;
+        min-height: 24px;
+        font-size: 1.1rem;
+        color: #a0d2ff;
+      }
+
+      .input-hint {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 0.9rem;
+        color: #8a8a8a;
+      }
+
+      .serial-status {
+        text-align: center;
+        margin-top: 15px;
+        font-size: 0.9rem;
+        padding: 8px;
+        border-radius: 6px;
+        background: rgba(15, 25, 35, 0.7);
+      }
+
+      .serial-connected {
+        color: #96c93d;
+      }
+
+      .serial-disconnected {
+        color: #e52e71;
+      }
+
+      .game-info {
+        margin-top: 20px;
+        padding: 15px;
+        background: rgba(15, 25, 35, 0.5);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 500px) {
+        .led {
+          width: 50px;
+          height: 50px;
+        }
+
+        .btn {
+          padding: 10px 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="game-container">
+      <header>
+        <h1>LED MEMORY GAME</h1>
+        <p class="subtitle">Match the sequence of flashing LEDs</p>
+      </header>
+
+      <div class="status-panel">
+        <div class="score-container">
+          <div class="score-label">SCORE</div>
+          <div class="score-value">0</div>
+        </div>
+        <div class="level-container">
+          <div class="level-label">LEVEL</div>
+          <div class="level-value">1</div>
+        </div>
+      </div>
+
+      <div class="leds-container">
+        <div class="led" data-id="1">
+          <span class="led-number">1</span>
+        </div>
+        <div class="led" data-id="2">
+          <span class="led-number">2</span>
+        </div>
+        <div class="led" data-id="3">
+          <span class="led-number">3</span>
+        </div>
+        <div class="led" data-id="4">
+          <span class="led-number">4</span>
+        </div>
+        <div class="led" data-id="5">
+          <span class="led-number">5</span>
+        </div>
+        <div class="led" data-id="6">
+          <span class="led-number">6</span>
+        </div>
+      </div>
+
+      <div class="game-status">Ready to start</div>
+
+      <div class="controls">
+        <button class="btn btn-start">START GAME</button>
+        <button class="btn btn-restart">RESTART</button>
+      </div>
+
+      <div class="input-hint">
+        Type numbers 1-6 on your keyboard or click the LEDs
+      </div>
+
+      <div class="serial-status serial-disconnected">Serial: Not Connected</div>
+
+      <div class="game-info">
+        <p>
+          <strong>How to play:</strong> Watch the sequence of flashing LEDs,
+          then repeat it by pressing the corresponding numbers (1-6) on your
+          keyboard or clicking the LEDs.
+        </p>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Game state
+        const gameState = {
+          score: 0,
+          level: 1,
+          isPlaying: false,
+          sequence: [],
+          userSequence: [],
+          currentStep: 0,
+          sequenceLength: 6,
+        };
+
+        // DOM elements
+        const scoreElement = document.querySelector(".score-value");
+        const levelElement = document.querySelector(".level-value");
+        const gameStatusElement = document.querySelector(".game-status");
+        const startButton = document.querySelector(".btn-start");
+        const restartButton = document.querySelector(".btn-restart");
+        const leds = document.querySelectorAll(".led");
+        const serialStatus = document.querySelector(".serial-status");
+
+        // Initialize game
+        function initGame() {
+          updateDisplay();
+          setupEventListeners();
+        }
+
+        // Update display with current game state
+        function updateDisplay() {
+          scoreElement.textContent = gameState.score;
+          levelElement.textContent = gameState.level;
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+          startButton.addEventListener("click", startGame);
+          restartButton.addEventListener("click", restartGame);
+
+          // Keyboard input
+          document.addEventListener("keydown", handleKeyPress);
+
+          // LED click events
+          leds.forEach((led) => {
+            led.addEventListener("click", function () {
+              if (!gameState.isPlaying) return;
+
+              const ledId = parseInt(this.getAttribute("data-id"));
+              handleUserInput(ledId);
+            });
+          });
+        }
+
+        // Start the game
+        function startGame() {
+          if (gameState.isPlaying) return;
+
+          gameState.isPlaying = true;
+          gameState.score = 0;
+          gameState.level = 1;
+          gameState.sequence = [];
+          gameState.userSequence = [];
+          gameState.currentStep = 0;
+
+          updateDisplay();
+          gameStatusElement.textContent = "Generating sequence...";
+
+          // Generate initial sequence
+          generateSequence();
+
+          // Play sequence after a short delay
+          setTimeout(playSequence, 1000);
+        }
+
+        // Restart the game
+        function restartGame() {
+          if (!gameState.isPlaying) return;
+
+          gameState.isPlaying = false;
+          setTimeout(startGame, 500);
+        }
+
+        // Generate a random sequence
+        function generateSequence() {
+          gameState.sequence = [];
+          for (let i = 0; i < gameState.sequenceLength; i++) {
+            gameState.sequence.push(Math.floor(Math.random() * 6) + 1);
+          }
+
+          console.log("Sequence:", gameState.sequence);
+        }
+
+        // Play the sequence with visual feedback
+        function playSequence() {
+          gameStatusElement.textContent = "Watch the sequence...";
+
+          let delay = 0;
+          gameState.sequence.forEach((ledNumber, index) => {
+            setTimeout(() => {
+              activateLed(ledNumber);
+
+              // Show step number
+              gameStatusElement.textContent = `Step ${index + 1} of ${
+                gameState.sequenceLength
+              }`;
+            }, delay);
+
+            delay += 1200; // 1.2 seconds between LEDs
+          });
+
+          // Enable user input after sequence is shown
+          setTimeout(() => {
+            gameState.userSequence = [];
+            gameState.currentStep = 0;
+            gameStatusElement.textContent = "Your turn! Enter the sequence...";
+          }, delay);
+        }
+
+        // Activate a specific LED
+        function activateLed(ledNumber) {
+          const led = document.querySelector(`.led[data-id="${ledNumber}"]`);
+          led.classList.add("active");
+
+          setTimeout(() => {
+            led.classList.remove("active");
+          }, 800);
+        }
+
+        // Handle keyboard input
+        function handleKeyPress(event) {
+          if (!gameState.isPlaying) return;
+
+          const key = event.key;
+          if (key >= "1" && key <= "6") {
+            const ledNumber = parseInt(key);
+            handleUserInput(ledNumber);
+          }
+        }
+
+        // Handle user input (keyboard or click)
+        function handleUserInput(ledNumber) {
+          if (!gameState.isPlaying) return;
+
+          // Visual feedback
+          activateLed(ledNumber);
+
+          // Add to user sequence
+          gameState.userSequence.push(ledNumber);
+
+          // Check if correct
+          if (ledNumber === gameState.sequence[gameState.currentStep]) {
+            gameState.currentStep++;
+
+            // Check if sequence is complete
+            if (gameState.currentStep === gameState.sequenceLength) {
+              // Level completed
+              gameState.score += 10 * gameState.level;
+              gameState.level++;
+
+              // Update display
+              updateDisplay();
+
+              gameStatusElement.textContent = "Correct! Next level...";
+
+              // Increase sequence length for next level (up to a maximum)
+              if (gameState.sequenceLength < 10) {
+                gameState.sequenceLength++;
+              }
+
+              // Generate and play next sequence after a delay
+              setTimeout(() => {
+                generateSequence();
+                setTimeout(playSequence, 1000);
+              }, 1500);
+            } else {
+              gameStatusElement.textContent = `Correct! ${
+                gameState.sequenceLength - gameState.currentStep
+              } more...`;
+            }
+          } else {
+            // Wrong input - game over
+            gameOver();
+          }
+        }
+
+        // Game over state
+        function gameOver() {
+          gameState.isPlaying = false;
+          gameStatusElement.textContent = "Game Over! Wrong sequence.";
+
+          // Visual feedback for game over
+          leds.forEach((led) => {
+            led.classList.add("active");
+          });
+
+          setTimeout(() => {
+            leds.forEach((led) => {
+              led.classList.remove("active");
+            });
+          }, 1000);
+        }
+
+        // Simulate serial connection status
+        function updateSerialStatus() {
+          // In a real implementation, this would check actual serial connection
+          const isConnected = Math.random() > 0.3; // 70% chance of "connected" for demo
+
+          if (isConnected) {
+            serialStatus.textContent = "Serial: Connected";
+            serialStatus.classList.remove("serial-disconnected");
+            serialStatus.classList.add("serial-connected");
+          } else {
+            serialStatus.textContent = "Serial: Not Connected";
+            serialStatus.classList.remove("serial-connected");
+            serialStatus.classList.add("serial-disconnected");
+          }
+        }
+
+        // Initialize the game
+        initGame();
+
+        // Update serial status periodically (for demo purposes)
+        setInterval(updateSerialStatus, 3000);
+        updateSerialStatus();
+      });
+    </script>
+  </body>
+</html>
