@@ -223,7 +223,7 @@ class LEDGameGUI:
     
     def connect_serial(self):
         try:
-            self.ser = serial.Serial('COM7', 9600, timeout=1)
+            self.ser = serial.Serial('COM9', 9600, timeout=1)
             self.serial_running = True
             self.serial_thread = threading.Thread(target=self.read_serial, daemon=True)
             self.serial_thread.start()
